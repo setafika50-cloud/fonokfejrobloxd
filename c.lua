@@ -1,11 +1,11 @@
--- Minimalista Roblox GUI
+-- Minimalista Roblox GUI (ikonok nélkül)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MinimalGUI"
+ScreenGui.Name = "SimpleGUI"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ResetOnSpawn = false
 
@@ -17,7 +17,7 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Tabs Frame
+-- Tabs Frame (bal)
 local TabsFrame = Instance.new("Frame")
 TabsFrame.Size = UDim2.new(0, 100, 1, 0)
 TabsFrame.Position = UDim2.new(0, 0, 0, 0)
@@ -25,7 +25,7 @@ TabsFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 TabsFrame.BorderSizePixel = 0
 TabsFrame.Parent = MainFrame
 
--- Content Frame
+-- Content Frame (jobb)
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, -100, 1, 0)
 ContentFrame.Position = UDim2.new(0, 100, 0, 0)
@@ -33,17 +33,19 @@ ContentFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 ContentFrame.BorderSizePixel = 0
 ContentFrame.Parent = MainFrame
 
--- Tab Buttons
+-- Tabok
 local tabs = {"Player", "Teleports", "AutoFarm", "Misc"}
-local currentTab = nil
 local tabButtons = {}
+local currentTab = nil
 
+-- Tartalom törlése
 local function clearContent()
     for _, child in pairs(ContentFrame:GetChildren()) do
         child:Destroy()
     end
 end
 
+-- Tab váltás
 local function setTab(tabName)
     clearContent()
     currentTab = tabName
@@ -91,6 +93,7 @@ local function setTab(tabName)
     end
 end
 
+-- Tab gombok létrehozása
 for i, name in ipairs(tabs) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 40)
@@ -111,6 +114,6 @@ for i, name in ipairs(tabs) do
     table.insert(tabButtons, btn)
 end
 
--- Initialize first tab
+-- Első tab inicializálása
 tabButtons[1].BackgroundColor3 = Color3.fromRGB(120,120,120)
 setTab(tabs[1])
