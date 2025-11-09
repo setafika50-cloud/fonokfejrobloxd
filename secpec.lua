@@ -1,12 +1,3 @@
---[[ 
-Universal GUI Menu Template
-Features:
-- Keybind to toggle GUI
-- Tabs system
-- Buttons for custom features
-- Fully expandable
---]]
-
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -15,7 +6,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- Variables
-local toggleKey = Enum.KeyCode.RightControl -- Change key here
+local toggleKey = Enum.KeyCode.G -- Menü megjelenítés G betűvel
 local menuEnabled = false
 
 -- Create ScreenGui
@@ -31,13 +22,6 @@ mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
-
--- UI Layout
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Padding = UDim.new(0, 5)
-uiListLayout.FillDirection = Enum.FillDirection.Horizontal
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.Parent = mainFrame
 
 -- Tabs container
 local tabsFrame = Instance.new("Frame")
@@ -112,7 +96,7 @@ createButton(funTab, "Change Background Color", function()
     mainFrame.BackgroundColor3 = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
 end)
 
--- Keybind toggle
+-- Keybind toggle (G betű)
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.KeyCode == toggleKey then
