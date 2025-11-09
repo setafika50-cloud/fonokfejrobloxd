@@ -1,120 +1,122 @@
--- Minimalista Roblox GUI (ikonok nélkül)
+--[[ 
+Universal GUI Menu Template
+Features:
+- Keybind to toggle GUI
+- Tabs system
+- Buttons for custom features
+- Fully expandable
+--]]
 
+-- Services
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
--- ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SimpleGUI"
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.ResetOnSpawn = false
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Variables
+local toggleKey = Enum.KeyCode.RightControl -- Change key here
+local menuEnabled = false
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UniversalMenu"
+screenGui.Parent = playerGui
+screenGui.Enabled = menuEnabled
 
 -- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
--- Tabs Frame (bal)
-local TabsFrame = Instance.new("Frame")
-TabsFrame.Size = UDim2.new(0, 100, 1, 0)
-TabsFrame.Position = UDim2.new(0, 0, 0, 0)
-TabsFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-TabsFrame.BorderSizePixel = 0
-TabsFrame.Parent = MainFrame
+-- UI Layout
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Padding = UDim.new(0, 5)
+uiListLayout.FillDirection = Enum.FillDirection.Horizontal
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Parent = mainFrame
 
--- Content Frame (jobb)
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Size = UDim2.new(1, -100, 1, 0)
-ContentFrame.Position = UDim2.new(0, 100, 0, 0)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ContentFrame.BorderSizePixel = 0
-ContentFrame.Parent = MainFrame
+-- Tabs container
+local tabsFrame = Instance.new("Frame")
+tabsFrame.Size = UDim2.new(1, 0, 0, 30)
+tabsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+tabsFrame.Parent = mainFrame
 
--- Tabok
-local tabs = {"Player", "Teleports", "AutoFarm", "Misc"}
-local tabButtons = {}
-local currentTab = nil
+-- Buttons container
+local buttonsFrame = Instance.new("Frame")
+buttonsFrame.Size = UDim2.new(1, 0, 1, -30)
+buttonsFrame.Position = UDim2.new(0, 0, 0, 30)
+buttonsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+buttonsFrame.Parent = mainFrame
 
--- Tartalom törlése
-local function clearContent()
-    for _, child in pairs(ContentFrame:GetChildren()) do
-        child:Destroy()
-    end
-end
+-- Helper function to create tabs
+local function createTab(tabName)
+    local tabButton = Instance.new("TextButton")
+    tabButton.Size = UDim2.new(0, 100, 1, 0)
+    tabButton.Text = tabName
+    tabButton.Parent = tabsFrame
+    tabButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    tabButton.TextColor3 = Color3.new(1, 1, 1)
 
--- Tab váltás
-local function setTab(tabName)
-    clearContent()
-    currentTab = tabName
-    
-    if tabName == "Player" then
-        local wsBtn = Instance.new("TextButton")
-        wsBtn.Size = UDim2.new(0, 150, 0, 40)
-        wsBtn.Position = UDim2.new(0, 10, 0, 10)
-        wsBtn.Text = "Set WalkSpeed to 50"
-        wsBtn.Parent = ContentFrame
-        wsBtn.MouseButton1Click:Connect(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.WalkSpeed = 50
+    tabButton.MouseButton1Click:Connect(function()
+        -- Hide all other buttons
+        for _, frame in ipairs(buttonsFrame:GetChildren()) do
+            if frame:IsA("Frame") then
+                frame.Visible = false
             end
-        end)
-    elseif tabName == "Teleports" then
-        local tpBtn = Instance.new("TextButton")
-        tpBtn.Size = UDim2.new(0, 150, 0, 40)
-        tpBtn.Position = UDim2.new(0, 10, 0, 10)
-        tpBtn.Text = "Teleport to Spawn"
-        tpBtn.Parent = ContentFrame
-        tpBtn.MouseButton1Click:Connect(function()
-            local spawn = workspace:FindFirstChild("SpawnLocation")
-            if LocalPlayer.Character and spawn then
-                LocalPlayer.Character:SetPrimaryPartCFrame(spawn.CFrame + Vector3.new(0,5,0))
-            end
-        end)
-    elseif tabName == "AutoFarm" then
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0, 200, 0, 40)
-        lbl.Position = UDim2.new(0, 10, 0, 10)
-        lbl.Text = "AutoFarm Placeholder"
-        lbl.TextColor3 = Color3.fromRGB(255,255,255)
-        lbl.BackgroundTransparency = 1
-        lbl.Parent = ContentFrame
-    elseif tabName == "Misc" then
-        local rejoinBtn = Instance.new("TextButton")
-        rejoinBtn.Size = UDim2.new(0, 150, 0, 40)
-        rejoinBtn.Position = UDim2.new(0, 10, 0, 10)
-        rejoinBtn.Text = "Rejoin Game"
-        rejoinBtn.Parent = ContentFrame
-        rejoinBtn.MouseButton1Click:Connect(function()
-            game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-        end)
-    end
-end
-
--- Tab gombok létrehozása
-for i, name in ipairs(tabs) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Position = UDim2.new(0, 0, 0, (i-1)*45)
-    btn.Text = name
-    btn.Parent = TabsFrame
-    btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    
-    btn.MouseButton1Click:Connect(function()
-        setTab(name)
-        for _, b in pairs(tabButtons) do
-            b.BackgroundColor3 = Color3.fromRGB(80,80,80)
         end
-        btn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+        -- Show current tab
+        local tabFrame = buttonsFrame:FindFirstChild(tabName)
+        if tabFrame then
+            tabFrame.Visible = true
+        end
     end)
-    
-    table.insert(tabButtons, btn)
+
+    -- Create content frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = tabName
+    contentFrame.Size = UDim2.new(1, 0, 1, 0)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Visible = false
+    contentFrame.Parent = buttonsFrame
+
+    return contentFrame
 end
 
--- Első tab inicializálása
-tabButtons[1].BackgroundColor3 = Color3.fromRGB(120,120,120)
-setTab(tabs[1])
+-- Example tabs
+local mainTab = createTab("Main")
+local funTab = createTab("Fun")
 
+-- Add buttons to tabs
+local function createButton(parent, buttonText, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 150, 0, 40)
+    button.Position = UDim2.new(0, 10, 0, (#parent:GetChildren() - 1) * 45)
+    button.Text = buttonText
+    button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Parent = parent
+
+    button.MouseButton1Click:Connect(callback)
+end
+
+-- Sample buttons
+createButton(mainTab, "Print Hello", function()
+    print("Hello World!")
+end)
+
+createButton(funTab, "Change Background Color", function()
+    mainFrame.BackgroundColor3 = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+end)
+
+-- Keybind toggle
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == toggleKey then
+        menuEnabled = not menuEnabled
+        screenGui.Enabled = menuEnabled
+    end
+end)
