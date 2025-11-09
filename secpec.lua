@@ -1,418 +1,190 @@
---[[
-    Title: Modern Draggable Utility GUI
-    Description: A complete, modular, and draggable ScreenGui implementation
-                 using Luau for Roblox game development. This script includes
-                 a tab system and sample features.
-    Usage: Place this script inside StarterPlayerScripts or a similar location.
-]]--
+--[[ 
+    Universal Roblox Script
+    Features: WalkSpeed, JumpPower, Teleport, Auto-Collect, ESP, Notifications
+    Tabs: Player, Misc, Settings
+--]]
 
--- =========================================================================
--- || 1. SETUP AND CONSTANTS                                            ||
--- =========================================================================
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
-local Player = game:GetService("Players").LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local Input = game:GetService("UserInputService")
-
--- Configuration
-local UI_TITLE = "Universal Utility Panel"
-local UI_FONT = Enum.Font.RobotoMono
-local MAIN_COLOR = Color3.fromRGB(56, 189, 248) -- Sky Blue
-local BG_COLOR = Color3.fromRGB(36, 36, 36)
-local TAB_INACTIVE_COLOR = Color3.fromRGB(48, 48, 48)
-local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
-
--- =========================================================================
--- || 2. UI CREATION FUNCTIONS                                          ||
--- =========================================================================
-
+-- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UtilityPanelGUI"
-ScreenGui.Parent = PlayerGui
+ScreenGui.Name = "UniversalHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
--- Main Frame (Root Container)
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 480, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -160)
-MainFrame.BackgroundColor3 = BG_COLOR
-MainFrame.BorderColor3 = MAIN_COLOR
-MainFrame.BorderSizePixel = 1
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = ScreenGui
 
--- Corner Radius
-local UICornerMain = Instance.new("UICorner")
-UICornerMain.CornerRadius = UDim.new(0, 8)
-UICornerMain.Parent = MainFrame
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
 
--- Header Bar (Draggable Area)
-local Header = Instance.new("Frame")
-Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = BG_COLOR
-Header.Parent = MainFrame
-
--- Header Gradient for style
-local HeaderGradient = Instance.new("UIGradient")
-HeaderGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, MAIN_COLOR),
-    ColorSequenceKeypoint.new(1, MAIN_COLOR:Lerp(Color3.fromRGB(0,0,0), 0.3))
-})
-HeaderGradient.Parent = Header
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Name = "Title"
-TitleLabel.Size = UDim2.new(1, -60, 1, 0)
-TitleLabel.Text = UI_TITLE
-TitleLabel.TextColor3 = TEXT_COLOR
-TitleLabel.Font = UI_FONT
-TitleLabel.TextSize = 18
-TitleLabel.BackgroundColor3 = BG_COLOR -- Make it transparent
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Parent = Header
-
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 30, 1, 0)
-CloseButton.Position = UDim2.new(1, -30, 0, 0)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = TEXT_COLOR
-CloseButton.Font = UI_FONT
-CloseButton.TextSize = 20
-CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseButton.Parent = Header
-
-local UICornerClose = Instance.new("UICorner")
-UICornerClose.CornerRadius = UDim.new(0, 4)
-UICornerClose.Parent = CloseButton
-
--- Sidebar for Tabs
-local TabSidebar = Instance.new("Frame")
-TabSidebar.Name = "TabSidebar"
-TabSidebar.Size = UDim2.new(0, 150, 1, -30)
-TabSidebar.Position = UDim2.new(0, 0, 0, 30)
-TabSidebar.BackgroundColor3 = BG_COLOR:Lerp(Color3.fromRGB(0,0,0), 0.1)
-TabSidebar.Parent = MainFrame
-
-local TabList = Instance.new("UIListLayout")
-TabList.Name = "TabList"
-TabList.Padding = UDim.new(0, 5)
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Left
-TabList.VerticalAlignment = Enum.VerticalAlignment.Top
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
-TabList.Parent = TabSidebar
-
--- Content Panel
-local ContentPanel = Instance.new("Frame")
-ContentPanel.Name = "ContentPanel"
-ContentPanel.Size = UDim2.new(1, -150, 1, -30)
-ContentPanel.Position = UDim2.new(0, 150, 0, 30)
-ContentPanel.BackgroundColor3 = BG_COLOR
-ContentPanel.BackgroundTransparency = 1
-ContentPanel.ClipsDescendants = true
-ContentPanel.Parent = MainFrame
-
--- Grid Layout for Content
-local ContentGrid = Instance.new("UIGridLayout")
-ContentGrid.Name = "ContentGrid"
-ContentGrid.CellSize = UDim2.new(1, 0, 0, 30)
-ContentGrid.CellPadding = UDim2.new(0, 5, 0, 5)
-ContentGrid.Parent = ContentPanel
-
--- =========================================================================
--- || 3. UTILITY FUNCTIONS (DRAGGING, TAB SYSTEM)                       ||
--- =========================================================================
-
-local isDragging = false
-local dragStartPos = nil
-
--- Function to handle dragging the GUI
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStartPos = Input:GetMouseLocation()
-        MainFrame:SetAttribute("InitialPosition", MainFrame.AbsolutePosition)
-    end
-end)
-
-Input.InputChanged:Connect(function(input)
-    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType.Touch) then
-        local delta = Input:GetMouseLocation() - dragStartPos
-        local initialPos = MainFrame:GetAttribute("InitialPosition")
-
-        if initialPos then
-            local newX = initialPos.X + delta.X
-            local newY = initialPos.Y + delta.Y
-
-            -- Convert to UDim2 scale/offset based on screen size
-            local screenX = ScreenGui.AbsoluteSize.X
-            local screenY = ScreenGui.AbsoluteSize.Y
-
-            local newUDim2 = UDim2.fromOffset(newX, newY)
-
-            -- Optional: Add bounds checking here
-            MainFrame.Position = newUDim2
-        end
-    end
-end)
-
-Input.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType.Touch then
-        isDragging = false
-    end
-end)
-
--- Function to handle toggling the UI visibility
-local function toggleUI(visible)
-    MainFrame.Visible = visible
-end
-
-ScreenGui.Enabled = true
-toggleUI(true) -- Start visible
-
-CloseButton.MouseButton1Click:Connect(function()
-    toggleUI(false)
-end)
-
--- Keybind to toggle UI (using 'Delete' or 'Insert' key is common for these types of menus)
-Input.InputBegan:Connect(function(input, gameProcessed)
-    -- Check if a typing box is focused before handling the keybind
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
-        toggleUI(not MainFrame.Visible)
-    end
-end)
-
--- =========================================================================
--- || 4. TAB SYSTEM MANAGER                                             ||
--- =========================================================================
-
+-- Tabs
 local tabs = {}
-local activeTab = nil
-
-local function createTab(tabName, layoutOrder)
-    -- 4a. Tab Button (Sidebar)
-    local TabButton = Instance.new("TextButton")
-    TabButton.Name = tabName .. "Button"
-    TabButton.Text = tabName
-    TabButton.Size = UDim2.new(1, -10, 0, 30)
-    TabButton.Position = UDim2.new(0, 5, 0, 0)
-    TabButton.TextColor3 = TEXT_COLOR
-    TabButton.Font = UI_FONT
-    TabButton.TextSize = 16
-    TabButton.BackgroundColor3 = TAB_INACTIVE_COLOR
-    TabButton.LayoutOrder = layoutOrder
-    TabButton.Parent = TabSidebar
-
-    local UICornerTab = Instance.new("UICorner")
-    UICornerTab.CornerRadius = UDim.new(0, 4)
-    UICornerTab.Parent = TabButton
-
-    -- 4b. Tab Page (Content Area)
-    local TabPage = Instance.new("Frame")
-    TabPage.Name = tabName .. "Page"
-    TabPage.Size = UDim2.new(1, 0, 1, 0)
-    TabPage.BackgroundColor3 = BG_COLOR
-    TabPage.BackgroundTransparency = 1
-    TabPage.Visible = false
-    TabPage.Parent = ContentPanel
-
-    -- Inherit Grid Layout
-    local ContentGridClone = ContentGrid:Clone()
-    ContentGridClone.Parent = TabPage
-
-    tabs[tabName] = {Button = TabButton, Page = TabPage}
-
-    return TabPage
-end
-
-local function switchTab(tabName)
-    if activeTab == tabName then return end
-
-    -- Deactivate previous tab
-    if activeTab and tabs[activeTab] then
-        tabs[activeTab].Button.BackgroundColor3 = TAB_INACTIVE_COLOR
-        tabs[activeTab].Page.Visible = false
-    end
-
-    -- Activate new tab
-    activeTab = tabName
-    if tabs[activeTab] then
-        tabs[activeTab].Button.BackgroundColor3 = MAIN_COLOR
-        tabs[activeTab].Page.Visible = true
-    end
-end
-
--- 4c. Connect Button Logic
-for tabName, tabData in pairs(tabs) do
-    tabData.Button.MouseButton1Click:Connect(function()
-        switchTab(tabName)
-    end)
-end
-
--- =========================================================================
--- || 5. FEATURE CREATION (Modular Design)                              ||
--- =========================================================================
-
-local function createFeatureToggle(parentFrame, text, callback)
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Name = "FeatureToggle"
-    ToggleButton.Text = text .. ": OFF"
-    ToggleButton.Size = UDim2.new(1, -10, 0, 25)
-    ToggleButton.Position = UDim2.new(0, 5, 0, 0)
-    ToggleButton.TextColor3 = TEXT_COLOR
-    ToggleButton.Font = UI_FONT
-    ToggleButton.TextSize = 14
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50) -- Red for OFF
-    ToggleButton.Parent = parentFrame
-
-    local UICornerFeature = Instance.new("UICorner")
-    UICornerFeature.CornerRadius = UDim.new(0, 4)
-    UICornerFeature.Parent = ToggleButton
-
-    local isActive = false
-    ToggleButton.MouseButton1Click:Connect(function()
-        isActive = not isActive
-        if isActive then
-            ToggleButton.Text = text .. ": ON"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50) -- Green for ON
-        else
-            ToggleButton.Text = text .. ": OFF"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+local function createTab(name)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 120, 0, 30)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    button.Position = UDim2.new(0, (#tabs*125), 0, 0)
+    button.Text = name
+    button.TextColor3 = Color3.new(1,1,1)
+    button.Parent = mainFrame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 1, -40)
+    frame.Position = UDim2.new(0, 5, 0, 35)
+    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    frame.Visible = false
+    frame.Parent = mainFrame
+    tabs[#tabs+1] = {button = button, frame = frame}
+    button.MouseButton1Click:Connect(function()
+        for _, t in pairs(tabs) do
+            t.frame.Visible = false
         end
-        callback(isActive)
+        frame.Visible = true
     end)
+    return frame
 end
 
-local function createFeatureSlider(parentFrame, text, minValue, maxValue, defaultValue, callback)
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -10, 0, 25)
-    Container.Position = UDim2.new(0, 5, 0, 0)
-    Container.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Container.Parent = parentFrame
+local playerTab = createTab("Player")
+local miscTab = createTab("Misc")
+local settingsTab = createTab("Settings")
 
-    local UICornerContainer = Instance.new("UICorner")
-    UICornerContainer.CornerRadius = UDim.new(0, 4)
-    UICornerContainer.Parent = Container
+-- Player Tab Features
+-- WalkSpeed
+local wsLabel = Instance.new("TextLabel")
+wsLabel.Size = UDim2.new(0, 150, 0, 30)
+wsLabel.Position = UDim2.new(0, 10, 0, 10)
+wsLabel.Text = "WalkSpeed:"
+wsLabel.TextColor3 = Color3.new(1,1,1)
+wsLabel.BackgroundTransparency = 1
+wsLabel.Parent = playerTab
 
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0.6, 0, 1, 0)
-    Label.Position = UDim2.new(0, 5, 0, 0)
-    Label.Text = string.format("%s: %d", text, defaultValue)
-    Label.TextColor3 = TEXT_COLOR
-    Label.Font = UI_FONT
-    Label.TextSize = 14
-    Label.BackgroundTransparency = 1
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Container
+local wsBox = Instance.new("TextBox")
+wsBox.Size = UDim2.new(0, 100, 0, 30)
+wsBox.Position = UDim2.new(0, 160, 0, 10)
+wsBox.PlaceholderText = "16"
+wsBox.Text = ""
+wsBox.Parent = playerTab
 
-    local TextBox = Instance.new("TextBox")
-    TextBox.Size = UDim2.new(0.3, 0, 0.8, 0)
-    TextBox.Position = UDim2.new(0.65, 0, 0.1, 0)
-    TextBox.Text = tostring(defaultValue)
-    TextBox.TextColor3 = TEXT_COLOR
-    TextBox.Font = UI_FONT
-    TextBox.TextSize = 14
-    TextBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    TextBox.TextXAlignment = Enum.TextXAlignment.Center
-    TextBox.Parent = Container
-
-    local function updateValue(value)
-        value = math.clamp(math.floor(value), minValue, maxValue)
-        TextBox.Text = tostring(value)
-        Label.Text = string.format("%s: %d", text, value)
-        callback(value)
-    end
-
-    TextBox.FocusLost:Connect(function(enterPressed)
-        local value = tonumber(TextBox.Text)
-        if value then
-            updateValue(value)
-        else
-            TextBox.Text = tostring(defaultValue) -- Reset if invalid
-            Label.Text = string.format("%s: %d (Invalid)", text)
-        end
-    end)
-
-    -- Initial call
-    callback(defaultValue)
-end
-
--- =========================================================================
--- || 6. ADDING TABS AND FEATURES                                         ||
--- =========================================================================
-
--- Create Tabs (Name, LayoutOrder)
-local movementPage = createTab("Movement", 1)
-local utilityPage = createTab("Utility", 2)
-local visualPage = createTab("Visuals", 3)
-
--- 6a. MOVEMENT TAB FEATURES
-createFeatureToggle(movementPage, "Toggle Sprint", function(active)
-    -- Example implementation: Changes the player's walk speed
-    if active then
-        Player.Character.Humanoid.WalkSpeed = 48 -- Fast speed
-    else
-        Player.Character.Humanoid.WalkSpeed = 16 -- Default speed
+wsBox.FocusLost:Connect(function()
+    local val = tonumber(wsBox.Text)
+    if val then
+        LocalPlayer.Character.Humanoid.WalkSpeed = val
     end
 end)
 
-createFeatureSlider(movementPage, "Set WalkSpeed", 16, 100, 25, function(value)
-    -- Note: We only set the speed if the 'Toggle Sprint' isn't actively forcing a different speed.
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        local humanoid = Player.Character.Humanoid
-        -- If 'Toggle Sprint' is OFF, set the custom speed
-        if not Player.Character:GetAttribute("IsSprinting") then
-            humanoid.WalkSpeed = value
+-- JumpPower
+local jpLabel = Instance.new("TextLabel")
+jpLabel.Size = UDim2.new(0, 150, 0, 30)
+jpLabel.Position = UDim2.new(0, 10, 0, 50)
+jpLabel.Text = "JumpPower:"
+jpLabel.TextColor3 = Color3.new(1,1,1)
+jpLabel.BackgroundTransparency = 1
+jpLabel.Parent = playerTab
+
+local jpBox = Instance.new("TextBox")
+jpBox.Size = UDim2.new(0, 100, 0, 30)
+jpBox.Position = UDim2.new(0, 160, 0, 50)
+jpBox.PlaceholderText = "50"
+jpBox.Text = ""
+jpBox.Parent = playerTab
+
+jpBox.FocusLost:Connect(function()
+    local val = tonumber(jpBox.Text)
+    if val then
+        LocalPlayer.Character.Humanoid.JumpPower = val
+    end
+end)
+
+-- Teleport (to mouse position)
+local tpButton = Instance.new("TextButton")
+tpButton.Size = UDim2.new(0, 150, 0, 30)
+tpButton.Position = UDim2.new(0, 10, 0, 90)
+tpButton.Text = "Teleport to Mouse"
+tpButton.TextColor3 = Color3.new(1,1,1)
+tpButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+tpButton.Parent = playerTab
+
+tpButton.MouseButton1Click:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0,3,0))
+    end
+end)
+
+-- Misc Tab Features
+-- Simple ESP
+local espEnabled = false
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(0, 150, 0, 30)
+espButton.Position = UDim2.new(0, 10, 0, 10)
+espButton.Text = "Toggle ESP"
+espButton.TextColor3 = Color3.new(1,1,1)
+espButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+espButton.Parent = miscTab
+
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local highlight = player.Character and player.Character:FindFirstChild("Highlight")
+            if espEnabled and not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.Name = "Highlight"
+                highlight.FillColor = Color3.fromRGB(255,0,0)
+                highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                highlight.Parent = player.Character
+            elseif not espEnabled and highlight then
+                highlight:Destroy()
+            end
         end
     end
 end)
 
--- 6b. UTILITY TAB FEATURES
-createFeatureToggle(utilityPage, "No Clip Toggle (Dev Only)", function(active)
-    -- This feature is typically restricted to admins/devs in live games
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        Player.Character.Humanoid.PlatformStand = active
-        -- Set CanCollide to false for parts (requires more complex code usually)
-        print("No Clip " .. (active and "Activated" or "Deactivated"))
+-- Auto-Collect Example (coins named "Coin" in workspace)
+local autoCollect = false
+local acButton = Instance.new("TextButton")
+acButton.Size = UDim2.new(0, 150, 0, 30)
+acButton.Position = UDim2.new(0, 10, 0, 50)
+acButton.Text = "Toggle Auto Collect"
+acButton.TextColor3 = Color3.new(1,1,1)
+acButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+acButton.Parent = miscTab
+
+acButton.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+end)
+
+RunService.RenderStepped:Connect(function()
+    if autoCollect then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj.Name == "Coin" and obj:IsA("BasePart") then
+                obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+            end
+        end
     end
 end)
 
--- 6c. VISUALS TAB FEATURES (Placeholder)
-local PlaceholderButton = Instance.new("TextButton")
-PlaceholderButton.Size = UDim2.new(1, -10, 0, 25)
-PlaceholderButton.Position = UDim2.new(0, 5, 0, 0)
-PlaceholderButton.Text = "Add Visual Feature Here (e.g. ESP)"
-PlaceholderButton.TextColor3 = TEXT_COLOR
-PlaceholderButton.Font = UI_FONT
-PlaceholderButton.TextSize = 14
-PlaceholderButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-PlaceholderButton.Parent = visualPage
+-- Settings Tab Features
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 100, 0, 30)
+closeButton.Position = UDim2.new(0, 10, 0, 10)
+closeButton.Text = "Toggle GUI"
+closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+closeButton.Parent = settingsTab
 
-local UICornerPlaceholder = Instance.new("UICorner")
-UICornerPlaceholder.CornerRadius = UDim.new(0, 4)
-UICornerPlaceholder.Parent = PlaceholderButton
+closeButton.MouseButton1Click:Connect(function()
+    ScreenGui.Enabled = not ScreenGui.Enabled
+end)
 
--- 6d. Final Initialization
--- Re-connect button logic after all tabs are created
-for tabName, tabData in pairs(tabs) do
-    tabData.Button.MouseButton1Click:Connect(function()
-        switchTab(tabName)
-    end)
-end
-
--- Show the first tab by default
-switchTab("Movement")
-
--- =========================================================================
--- || 7. CHARACTER RESPAWN FIX (Ensures UI features persist)            ||
--- =========================================================================
-
-Player.CharacterAdded:Connect(function(character)
-    -- This is important to ensure features like WalkSpeed are reapplied on respawn
-    for _, feature in pairs(movementPage:GetChildren()) do
-        if feature:IsA("TextButton") and string.find(feature.Text, "ON") then
-            -- Re-trigger the logic for active toggles if necessary
-            -- (For this simple example, the WalkSpeed slider handles it on its own)
-        end
-    end
+-- End of Script
